@@ -1,7 +1,7 @@
 import uproot
 from atuproot.BEvents import BEvents
 from .masked_tree import MaskedUprootTree
-
+from . import dataspace
 
 class EventRanger():
     def __init__(self):
@@ -28,15 +28,16 @@ class EventRanger():
 
 
 class BEventsWrapped(BEvents):
-    def __init__(self, tree, *args, **kwargs):
+    def __init__(self, trees, *args, **kwargs):
         ranges = EventRanger()
-        tree = MaskedUprootTree(tree, ranges)
-        super(BEventsWrapped, self).__init__(tree, *args, **kwargs)
+        print(trees)
+        trees = [MaskedUprootTree(tree, ranges) for tree in trees]
+        ds = dataspace.group(trees)
+        super(BEventsWrapped, self).__init__(ds, *args, **kwargs)
         ranges.set_owner(self)
 
     def _block_changed(self):
-        self.tree.reset_mask()
-        self.tree.reset_cache()
+        self.tree.notify(action=['reset_mask', 'reset_cache'])
 
     def __getitem__(self, i):
         result = super(BEventsWrapped, self).__getitem__(self, i)
@@ -70,13 +71,13 @@ class EventBuilder(object):
         # localsource option
         try:
             rootfile = uproot.open(self.config.inputPaths[0])
-            tree = rootfile[self.config.treeName]
+            trees = [rootfile[treeName] for treeName in self.config.treeName]
         except MemoryError:
             rootfile = uproot.open(self.config.inputPaths[0],
                                    localsource=uproot.FileSource.defaults)
-            tree = rootfile[self.config.treeName]
+            trees = [rootfile[treeName] for treeName in self.config.treeName]
 
-        events = BEventsWrapped(tree,
+        events = BEventsWrapped(trees,
                                 self.config.nevents_per_block,
                                 self.config.start_block,
                                 self.config.stop_block)

@@ -1,0 +1,12 @@
+datasets:
+  - eventtype: null
+    files:
+      - /mnt/c/Workspace/cms-l1t-analysis/test/data/2kmu.root
+    name: test
+    nevents:
+      l1CaloTowerEmuTree/L1CaloTowerTree: 1853
+      l1CaloTowerTree/L1CaloTowerTree: 1853
+    nfiles: 1
+    tree:
+      - "l1CaloTowerEmuTree/L1CaloTowerTree"
+      - "l1CaloTowerTree/L1CaloTowerTree"
