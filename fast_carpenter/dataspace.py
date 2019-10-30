@@ -42,22 +42,28 @@ class DataSpace(object):
 
     def notify(self, group=None, *args, **kwargs):
         elements = self._elements
+        # should group be groups where we pop one item of for each level?
         if group is not None and group != self._name:
             self.find_group(group).notify(*args, **kwargs)
 
+        results = {}
         for element in elements:
-            if hasattr(element, 'notify'):
-                element.notify(*args, **kwargs)
+            if isinstance(element, DataSpace):
+                print('element is a data space')
+                results[element._name] = element.notify(*args, **kwargs)
             else:
                 action = []
-                results = {}
                 if 'action' in kwargs:
                     action = kwargs.pop('action')
                     if not isinstance(action, list):
                         action = [action]
                     for a in action:
                         if hasattr(element, a):
-                            results[a] = getattr(element, a)(*args, **kwargs)
+                            # should we catch errors here?
+                            try:
+                                results[a] = getattr(element, a)(*args, **kwargs)
+                            except:
+                                pass
         return results
 
     def __len__(self):
@@ -85,7 +91,7 @@ class DataSpace(object):
                 folder = '/'.join(tokens[:i])
                 name = '.'.join(tokens[i:])
                 print('Trying to find {}:'.format(folder + item))
-                result = self.notify(group=folder + name, action='array')
+                result = self.notify(group=folder, item=name, action='array')
             except KeyError as e:
                 print('Cannot find {}:'.format(folder + item), e)
         print('result', result)
