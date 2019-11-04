@@ -25,6 +25,7 @@ class DataSpace(object):
     """
         Dataspace to collect objects from memory, group them and notfify them of changes
     """
+    WRAPPED_FUNCS = ['array']
 
     def __init__(self, name=None):
         self._elements = []
@@ -43,13 +44,16 @@ class DataSpace(object):
     def notify(self, group=None, *args, **kwargs):
         elements = self._elements
         # should group be groups where we pop one item of for each level?
-        if group is not None and group != self._name:
+        if group and group != self._name:
             self.find_group(group).notify(*args, **kwargs)
+        
 
         results = {}
+        # group, item = self.find_group_and_item(item)
+        # if group is not None:
+            
         for element in elements:
             if isinstance(element, DataSpace):
-                print('element is a data space')
                 results[element._name] = element.notify(*args, **kwargs)
             else:
                 action = []
@@ -58,12 +62,12 @@ class DataSpace(object):
                     if not isinstance(action, list):
                         action = [action]
                     for a in action:
+                        if a in self.WRAPPED_FUNCS:
+                            results[a] = getattr(self, a)(*args, **kwargs)
+                            continue
                         if hasattr(element, a):
                             # should we catch errors here?
-                            try:
-                                results[a] = getattr(element, a)(*args, **kwargs)
-                            except:
-                                pass
+                            results[a] = getattr(element, a)(*args, **kwargs)
         return results
 
     def __len__(self):
@@ -79,27 +83,60 @@ class DataSpace(object):
 
         raise KeyError('Cannot find group {group} in data space {name}'.format(
             group=group, name=self._name))
+        
+    def find_group_and_item(self, group_or_item):
+        tokens = group_or_item.split('.')
+        if not tokens:
+            return None, group_or_item
+        
+        for i in range(len(tokens)):
+            group = '/'.join(tokens[:i])
+            item = '.'.join(tokens[i:])
+            if group == self._name:
+                return self, item
+            for element in self._elements:
+                if not isinstance(element, DataSpace):
+                    continue
+                if group == element._name:
+                    return element, item
+                
+        return self, group_or_item
+                    
 
     def array(self, item):
-        tokens = item.split('.')
-        if not tokens:
-            return self.notify(None, item, action='array')
-
-        result = None
-        for i in range(len(tokens)):
-            try:
-                folder = '/'.join(tokens[:i])
-                name = '.'.join(tokens[i:])
-                print('Trying to find {}:'.format(folder + item))
-                result = self.notify(group=folder, item=name, action='array')
-            except KeyError as e:
-                print('Cannot find {}:'.format(folder + item), e)
-        print('result', result)
-        return result
+        group, item = self.find_group_and_item(item)
+        if group is None:
+            # call notify on elements
+            return self.notify(group=None, item=item, action='array')
+    
+        try:
+            result = group._elements[0].array(item)
+            return result
+        except Exception as e:
+            print('failed', self._elements, e)
+        
+        return None
 
     @property
     def et(self):
-        return 42
+        return [42]
+    
+    def __repr__(self):
+        element_names = [e._name for e in self._elements if hasattr(e, '_name')]
+        n_elements = len(self._elements)
+        n_unnamed = n_elements - len(element_names)
+        if n_unnamed > 0:
+            return 'DataSpace "{name}" with {N} elements: {element_names} ({M} unnamed)'.format(
+                name=self._name,
+                N=n_elements,
+                element_names=element_names,
+                M=n_unnamed,
+            )
+        return 'DataSpace "{name}" with {N} elements: {element_names}'.format(
+                name=self._name,
+                N=n_elements,
+                element_names=element_names,
+            )
 
 
 class DataSpaceGroup(object):

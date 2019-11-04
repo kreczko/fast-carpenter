@@ -4,10 +4,10 @@ stages:
 
 jet_cleaning:
     variables:
-        - diff_emu: "l1CaloTowerTree/L1CaloTowerTree.L1CaloTower.et - l1CaloTowerEmuTree/L1CaloTowerTree.L1CaloTower.et"
+        - diff_emu: "l1CaloTowerTree.L1CaloTowerTree.L1CaloTower.et - l1CaloTowerEmuTree.L1CaloTowerTree.L1CaloTower.et"
 
 histogram:
     binning:
         - {in: diff, bins: {edges: [-100, -50, -20, 0, 20, 50, 100]}}
-        - {in: "l1CaloTowerTree/L1CaloTowerTree.L1CaloTower.et", out: et, bins: {edges: [0, 200, 400, 700, 1000]}}
-        - {in: "l1CaloTowerEmuTree/L1CaloTowerTree.L1CaloTower.et", out: emu_et, bins: {edges: [0, 200, 400, 700, 1000]}}
+        - {in: "l1CaloTowerTree.L1CaloTowerTree.L1CaloTower.et", out: et, bins: {edges: [0, 200, 400, 700, 1000]}}
+        - {in: "l1CaloTowerEmuTree.L1CaloTowerTree.L1CaloTower.et", out: emu_et, bins: {edges: [0, 200, 400, 700, 1000]}}
