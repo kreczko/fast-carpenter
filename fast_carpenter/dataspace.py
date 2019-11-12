@@ -21,6 +21,16 @@ def group(elements, name=None):
     return newGroup
 
 
+def unpack_results(results):
+    if isinstance(results, dict):
+        for v in results.values():
+            if isinstance(v, dict):
+                for vs in unpack_results(v):
+                    yield vs
+            else:
+                yield v
+
+
 class DataSpace(object):
     """
         Dataspace to collect objects from memory, group them and notfify them of changes
@@ -46,15 +56,12 @@ class DataSpace(object):
         # should group be groups where we pop one item of for each level?
         if group and group != self._name:
             self.find_group(group).notify(*args, **kwargs)
-        
+
 
         results = {}
-        # group, item = self.find_group_and_item(item)
-        # if group is not None:
-            
         for element in elements:
             if isinstance(element, DataSpace):
-                results[element._name] = element.notify(*args, **kwargs)
+                results[element._name] = element.notify(element._name, *args, **kwargs)
             else:
                 action = []
                 if 'action' in kwargs:
@@ -71,9 +78,11 @@ class DataSpace(object):
         return results
 
     def __len__(self):
-        for element in self._elements:
-            if hasattr(element, '__len__'):
-                return len(element)
+        results = self.notify(action=['__len__'])
+        results = list(unpack_results(results))
+
+        return sum(results)
+
 
     def find_group(self, group):
         for element in self._elements:
@@ -83,12 +92,12 @@ class DataSpace(object):
 
         raise KeyError('Cannot find group {group} in data space {name}'.format(
             group=group, name=self._name))
-        
+
     def find_group_and_item(self, group_or_item):
         tokens = group_or_item.split('.')
-        if not tokens:
+        if len(tokens) == 1:
             return None, group_or_item
-        
+
         for i in range(len(tokens)):
             group = '/'.join(tokens[:i])
             item = '.'.join(tokens[i:])
@@ -99,28 +108,30 @@ class DataSpace(object):
                     continue
                 if group == element._name:
                     return element, item
-                
+
         return self, group_or_item
-                    
+
 
     def array(self, item):
         group, item = self.find_group_and_item(item)
+        data = None
         if group is None:
-            # call notify on elements
-            return self.notify(group=None, item=item, action='array')
-    
+            data = self
+        else:
+            data = group
+
         try:
-            result = group._elements[0].array(item)
+            result = data._elements[0].array(item)
             return result
         except Exception as e:
             print('failed', self._elements, e)
-        
+
         return None
 
     @property
     def et(self):
         return [42]
-    
+
     def __repr__(self):
         element_names = [e._name for e in self._elements if hasattr(e, '_name')]
         n_elements = len(self._elements)
@@ -137,6 +148,16 @@ class DataSpace(object):
                 N=n_elements,
                 element_names=element_names,
             )
+
+    def __contains__(self, name):
+        contains = None
+        group, item = self.find_group_and_item(name)
+        if group:
+            contains = group.notify(None, item, action=['__contains__'])
+        else:
+            contains = self.notify(None, item, action=['__contains__'])
+        contains = list(unpack_results(contains))
+        return any(contains)
 
 
 class DataSpaceGroup(object):
