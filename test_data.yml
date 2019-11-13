@@ -1,7 +1,7 @@
 datasets:
   - eventtype: null
     files:
-      - /mnt/c/Workspace/cms-l1t-analysis/test/data/2kmu.root
+      - tests/data/CMS_L1T_study.root
     name: test
     nevents:
       l1CaloTowerEmuTree/L1CaloTowerTree: 1853
