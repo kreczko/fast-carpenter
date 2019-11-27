@@ -42,9 +42,6 @@ class DataSpace(object):
         self._namedElements = {}
         self._name = name if name is not None else 'final space season 1'
 
-    def add(self, element, *args, **kwargs):
-        pass
-
     def extend(self, elements):
         self._elements.extend(elements)
 

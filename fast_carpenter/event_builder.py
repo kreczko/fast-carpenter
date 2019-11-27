@@ -30,7 +30,9 @@ class EventRanger():
 class BEventsWrapped(BEvents):
     def __init__(self, trees, *args, **kwargs):
         ranges = EventRanger()
-        print(trees)
+        if not isinstance(trees, (dict)):
+            trees = {trees.name.decode('utf-8'): trees}
+        print('tree', trees)
         trees = {name: MaskedUprootTree(tree, ranges) for name, tree in trees.items()}
         ds = dataspace.group(trees, name='input_trees')
         print(ds._elements)

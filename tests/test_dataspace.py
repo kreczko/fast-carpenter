@@ -1,6 +1,10 @@
+from collections import namedtuple
 import pytest
+import uproot
 
 from fast_carpenter import dataspace as ds
+from fast_carpenter.masked_tree import MaskedUprootTree
+from fast_carpenter.event_builder import EventRanger
 
 
 class DummyTree:
@@ -22,6 +26,7 @@ class DummyTree:
 
     def __contains__(self, name):
         return name in self.__dict__ or hasattr(self, name)
+
 
 @pytest.fixture
 def dataspace_from_dict():
@@ -49,6 +54,29 @@ def complex_dataspace():
 def dataspace_from_single_tree(infile):
     trees = {infile.name.decode('utf-8'): infile}
     return ds.group(trees, name='input_trees'), trees
+
+@pytest.fixture
+def owner():
+    Owner = namedtuple(
+        'Owner',
+        ['start_block', 'iblock', 'nevents_per_block', 'nblocks', 'nevents_in_tree']
+    )
+    return  Owner(
+        0, 1, 10000, 1, 10000,
+    )
+
+
+@pytest.fixture
+def dataspace_from_multiple_trees(owner):
+    filename = "tests/data/CMS_L1T_study.root"
+    trees = ['l1CaloTowerEmuTree/L1CaloTowerTree', 'l1CaloTowerTree/L1CaloTowerTree']
+    f = uproot.open(filename)
+    ranges = EventRanger()
+    # trees = {tree: MaskedUprootTree(f[tree], ranges) for tree in trees}
+    trees = {tree: f[tree] for tree in trees}
+    data = ds.group(trees, name='input_trees')
+    ranges.set_owner(owner)
+    return data, trees
 
 def test_group_with_list():
     dt = DummyTree()
@@ -100,11 +128,20 @@ def test_complex_access_with_wrapper(complex_dataspace):
     assert result['path2/dt2'][func] == trees['path2/dt2'].array('emu.electron.pt')
 
 
-def test_contains(complex_dataspace, dataspace_from_single_tree):
-    ds, tree = complex_dataspace
+def test_contains(complex_dataspace, dataspace_from_single_tree, dataspace_from_multiple_trees):
+    ds, _ = complex_dataspace
     assert 'path1.dt1.a' in ds
     assert 'path2.dt2.emu.electron.pt' in ds
     assert 'DoesNotExist' not in ds
-    ds, tree = dataspace_from_single_tree
+    ds, _ = dataspace_from_single_tree
     assert 'events.Muon_Py' in ds
+    assert 'DoesNotExist' not in ds
+
+    ds, trees = dataspace_from_multiple_trees
+    assert 'L1CaloTower' in trees['l1CaloTowerTree/L1CaloTowerTree']
+    print(trees['l1CaloTowerTree/L1CaloTowerTree']['L1CaloTower']['iet'].array())
+    print(trees['l1CaloTowerTree/L1CaloTowerTree'].array('L1CaloTower.iet'))
+    # print(trees['l1CaloTowerTree/L1CaloTowerTree'].array('L1CaloTower', ['et']))
+    assert 'l1CaloTowerTree.L1CaloTowerTree.L1CaloTower.et' in ds
+    assert 'l1CaloTowerEmuTree.L1CaloTowerTree.L1CaloTower.et' in ds
     assert 'DoesNotExist' not in ds
