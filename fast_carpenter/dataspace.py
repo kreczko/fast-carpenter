@@ -1,161 +1,183 @@
+"""
+Specification
+--------------
+The DataSpace is a composable container for any objects.
+
+- elements (sub-spaces) can be accessed via composable indices: `ds['path1/path2']['obj1.var'], ds['path1/path2.obj1.var'], ds['path1.path2.obj1.var']` are equivalent
+- function calls on a DataSpace or sub-space are redirected to the underlying objects and return a generator
+- objects under the same DataSpace need to be of the same type, i.e. have the same API
+- an object is contained  in a DataSpace if the object identifier can be found in the DataSpace index or the indices of sub-spaces
+"""
+import inspect
 
 
-def group(elements, name=None):
+def check_all_elements_of_same_type(elements):
+    if not elements:
+        return False
+    if not isinstance(elements, dict):
+        raise ValueError('elements need to be of type "dict"')
+    t = type(next(iter(elements.values())))
+    return all(isinstance(e, t) for e in elements.values())
+
+
+def group(group_name, elements):
     """
         Create group from the given elements and give it a name
     """
-    newGroup = DataSpace(name=name)
-    if isinstance(elements, dict):
-        groups = []
-        for name, item in elements.items():
-            tmpGroup = group(item, name=name)
-            groups.append(tmpGroup)
-        newGroup.extend(groups)
-        return newGroup
+    if not isinstance(elements, dict):
+        raise ValueError('elements need to be of type "dict"')
 
-    if isinstance(elements, (list, tuple)):
-        newGroup.extend(elements)
-    else:
-        newGroup.extend([elements])
-
+    newGroup = DataSpace(name=group_name)
+    groups = {}
+    for name, item in elements.items():
+        if isinstance(item, dict):
+            tmpGroup = group(name, item)
+            groups[name] = tmpGroup
+        else:
+            newGroup._add(name, item)
+    newGroup._update(groups)
     return newGroup
 
 
-def unpack_results(results):
-    if isinstance(results, dict):
-        for v in results.values():
-            if isinstance(v, dict):
-                for vs in unpack_results(v):
-                    yield vs
-            else:
-                yield v
+def _normalize_internal_path(path):
+    return path.replace('/', '.')
+
+
+class SubSpace(type):
+
+    def __new__(cls, name, bases, attrs):
+        print('  SubSpace.__new__(cls=%s, name=%s, bases=%s, attrs=%s)' % (
+            cls, name, bases, attrs
+        ))
+        print()
+        return super().__new__(cls, name, bases, attrs)
+
+    def __call__(cls, *args, **kwargs):
+
+        print('  SubSpace.__call__(cls=%s, args=%s, kwargs=%s)' % (
+            cls, args, kwargs
+        ))
+        print()
+        return super().__call__(*args, **kwargs)
+
+
+class HyperSpace(SubSpace):
+
+    def __new__(cls, name, bases, attrs):
+        print('  HyperSpace.__new__(cls=%s, name=%s, bases=%s, attrs=%s)' % (
+            cls, name, bases, attrs
+        ))
+        print()
+        attrs['__slots__'] = [a for a in attrs.keys() if not a.startswith('__')]
+        attrs['__slots__'] += ['_index', '_elements']
+        return super().__new__(cls, name, bases, attrs)
+
+    def __call__(cls, *args, **kwargs):
+        print('  HyperSpace.__call__(cls=%s, args=%s, kwargs=%s)' % (
+            cls, args, kwargs
+        ))
+        print()
+        name = args[0]
+        elements = args[1]
+        if not elements:
+            raise ValueError('elements cannot be empty')
+        if not check_all_elements_of_same_type(elements):
+            raise ValueError('Not all elements are of same type')
+
+        tmp_class = super().__call__(*args, **kwargs)
+        ds_methods = [m for m, _ in inspect.getmembers(tmp_class, predicate=inspect.ismethod)]
+        e_methods = [m for m, _ in inspect.getmembers(elements[0], predicate=inspect.ismethod)]
+        e_methods = [m for m in e_methods if m not in ds_methods and not m.startswith('__')]
+
+        attrs = {m: f for m, f in inspect.getmembers(cls, predicate=inspect.ismethod)}
+
+        new_attr = {m: print for m in e_methods}
+        attrs.update(new_attr)
+        # print('new:', attrs)
+
+        newclass = cls.__new__(cls, cls.__name__, [object], attrs)
+        print(dir(newclass), newclass.__slots__)
+        # newclass = super().__call__(*args, **kwargs)
+        return newclass
 
 
 class DataSpace(object):
-    """
-        Dataspace to collect objects from memory, group them and notfify them of changes
-    """
-    WRAPPED_FUNCS = ['array']
 
-    def __init__(self, name=None):
-        self._elements = []
-        self._namedElements = {}
-        self._name = name if name is not None else 'final space season 1'
+    # __slots__ = ['_index', '_elements', '_methods']
 
-    def extend(self, elements):
-        self._elements.extend(elements)
+    def __init__(self, name, elements=None):
+        if elements is not None and not check_all_elements_of_same_type(elements):
+            raise ValueError('Not all elements are of same type')
 
-    def update(self, namedElements):
-        self._namedElements.update(namedElements)
+        self._root = _normalize_internal_path(name)
+        self._index = {self._root: self}
+        self._elements = elements if elements is not None else {}
 
-    def notify(self, group=None, *args, **kwargs):
-        elements = self._elements
-        # should group be groups where we pop one item of for each level?
-        if group and group != self._name:
-            self.find_group(group).notify(*args, **kwargs)
+        self.__reload_index()
 
+    def __load_element_functions(self):
+        ds_methods = [m for m, _ in inspect.getmembers(self, predicate=inspect.ismethod)]
+        e_methods = [m for m, in inspect.getmembers(elements[0], predicate=inspect.ismethod)]
+        e_methods = [m for m in e_methods if m not in ds_methods and not m.startswith('__')]
 
-        results = {}
-        for element in elements:
-            if isinstance(element, DataSpace):
-                results[element._name] = element.notify(element._name, *args, **kwargs)
-            else:
-                action = []
-                if 'action' in kwargs:
-                    action = kwargs.pop('action')
-                    if not isinstance(action, list):
-                        action = [action]
-                    for a in action:
-                        if a in self.WRAPPED_FUNCS:
-                            results[a] = getattr(self, a)(*args, **kwargs)
-                            continue
-                        if hasattr(element, a):
-                            # should we catch errors here?
-                            results[a] = getattr(element, a)(*args, **kwargs)
-        return results
+        for m in e_methods:
+            print('adding method', m)
+            setattr(self, m, lambda e: getattr(e, m))
 
-    def __len__(self):
-        results = self.notify(action=['__len__'])
-        results = list(unpack_results(results))
+    def _add(self, name, value):
+        if name in self._elements:
+            raise KeyError('Element {} already exists'.format(name))
+        self._elements[name] = value
+        self.__reload_index(name, value)
 
-        return sum(results)
-
-
-    def find_group(self, group):
-        for element in self._elements:
-            if hasattr(element, 'name'):
-                if element.name == group:
-                    return element
-
-        raise KeyError('Cannot find group {group} in data space {name}'.format(
-            group=group, name=self._name))
-
-    def find_group_and_item(self, group_or_item):
-        tokens = group_or_item.split('.')
-        if len(tokens) == 1:
-            return None, group_or_item
-
-        for i in range(len(tokens)):
-            group = '/'.join(tokens[:i])
-            item = '.'.join(tokens[i:])
-            if group == self._name:
-                return self, item
-            for element in self._elements:
-                if not isinstance(element, DataSpace):
-                    continue
-                if group == element._name:
-                    return element, item
-
-        return self, group_or_item
-
-
-    def array(self, item):
-        group, item = self.find_group_and_item(item)
-        data = None
-        if group is None:
-            data = self
-        else:
-            data = group
-
-        try:
-            result = data._elements[0].array(item)
-            return result
-        except Exception as e:
-            print('failed', self._elements, e)
-
-        return None
-
-    @property
-    def et(self):
-        return [42]
-
-    def __repr__(self):
-        element_names = [e._name for e in self._elements if hasattr(e, '_name')]
-        n_elements = len(self._elements)
-        n_unnamed = n_elements - len(element_names)
-        if n_unnamed > 0:
-            return 'DataSpace "{name}" with {N} elements: {element_names} ({M} unnamed)'.format(
-                name=self._name,
-                N=n_elements,
-                element_names=element_names,
-                M=n_unnamed,
-            )
-        return 'DataSpace "{name}" with {N} elements: {element_names}'.format(
-                name=self._name,
-                N=n_elements,
-                element_names=element_names,
-            )
+    def _update(self, newElements):
+        newElements.update(self._elements)
+        self._elements = newElements
+        self.__reload_index()
 
     def __contains__(self, name):
-        contains = None
-        group, item = self.find_group_and_item(name)
-        if group:
-            contains = group.notify(None, item, action=['__contains__'])
-        else:
-            contains = self.notify(None, item, action=['__contains__'])
-        contains = list(unpack_results(contains))
-        return any(contains)
+        print(self._index)
+        return _normalize_internal_path(name) in self._index
 
+    def __add_to_index(self, name, value):
+        name = _normalize_internal_path(name)
+        full_path = '.'.join([self._root, name])
+        print(f'Adding {full_path}={value} to index')
+        print(f'Adding {name}={value} to index')
+        if name not in self._index and full_path not in self._index:
+            self._index[name] = value
+            self._index[full_path] = value
 
-class DataSpaceGroup(object):
-    pass
+    def __reload_index(self, name=None, value=None):
+        if name and value:
+            self.__add_to_index(name, value)
+            return
+
+        for name, value in self._elements.items():
+            if isinstance(value, self.__class__):
+                for n, v in value._index.items():
+                    v.__reload_index()
+                    self.__add_to_index('.'.join([name, n]), v)
+            elif hasattr(value, 'keys'):
+                print("recursive engaged")
+                self.__recursive_index(value, [name])
+                # for n in value.keys():
+                #     print(name, value, ' - ', n, value[n], hasattr(value[n], 'keys'))
+                #     v = value[n]
+                #     n = n.decode('utf-8') if isinstance(n, bytes) else n
+                #     self.__add_to_index('.'.join([name, n]), v)
+            print(name, value)
+            self.__add_to_index(name, value)
+
+    def __recursive_index(self, collection, parents):
+        self.__add_to_index('.'.join(parents), collection)
+        for n in collection.keys():
+            v = collection[n]
+            n = n.decode('utf-8') if isinstance(n, bytes) else n
+
+            if hasattr(v, 'keys'):
+                self.__recursive_index(v, parents + [n])
+            else:
+                path = _normalize_internal_path('.'.join(parents + [n]))
+                print(path, v)
+                self.__add_to_index(path, v)
