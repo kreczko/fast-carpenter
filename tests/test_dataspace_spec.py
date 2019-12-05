@@ -218,3 +218,12 @@ def test_complex_access_with_wrapper(complex_dataspace):
     result = data['path2.dt2.emu.electron.pt']
 
     assert result == trees['path2/dt2'].array('emu.electron.pt')
+
+
+def test_element_method(complex_dataspace):
+    ds, _ = complex_dataspace
+    assert 'path1.dt1.a' in ds
+    assert 'path1.dt1.notyethere' not in ds
+    ds.notify(actions=['add_var'], name='notyethere', value=42.2)
+    assert 'path1.dt1.notyethere' in ds
+    assert ds['path1.dt1.notyethere'] == 42.2

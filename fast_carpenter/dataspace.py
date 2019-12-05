@@ -139,7 +139,15 @@ class DataSpace(object):
 
     def __getitem__(self, name):
         name = _normalize_internal_path(name)
+        if name not in self._index:
+            print(name, 'not in', list(self._index.keys()))
         return self._index[name]
+
+    def __len__(self):
+        first_e = next(iter(self._elements.values()))
+        if hasattr(first_e, '__len__'):
+            return max([len(e) for e in self._elements])
+        return len(self._elements)
 
     def __add_to_index(self, name, value):
         name = _normalize_internal_path(name)
@@ -173,3 +181,14 @@ class DataSpace(object):
             else:
                 path = _normalize_internal_path('.'.join(parents + [n]))
                 self.__add_to_index(path, v)
+
+    def notify(self, *args, **kwargs):
+        actions = kwargs.pop('actions', [])
+        results = {}
+        for action in actions:
+            results[action] = {}
+            for name, element in self._elements.items():
+                print(action, name, element, args, kwargs)
+                results[action][name] = getattr(element, action)(*args, **kwargs)
+        self.__reload_index()
+        return results
