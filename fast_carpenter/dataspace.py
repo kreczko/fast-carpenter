@@ -42,63 +42,63 @@ def group(group_name, elements):
 def _normalize_internal_path(path):
     return path.replace('/', '.')
 
+# TODO: in next version?
+# class SubSpace(type):
 
-class SubSpace(type):
+#     def __new__(cls, name, bases, attrs):
+#         print('  SubSpace.__new__(cls=%s, name=%s, bases=%s, attrs=%s)' % (
+#             cls, name, bases, attrs
+#         ))
+#         print()
+#         return super().__new__(cls, name, bases, attrs)
 
-    def __new__(cls, name, bases, attrs):
-        print('  SubSpace.__new__(cls=%s, name=%s, bases=%s, attrs=%s)' % (
-            cls, name, bases, attrs
-        ))
-        print()
-        return super().__new__(cls, name, bases, attrs)
+#     def __call__(cls, *args, **kwargs):
 
-    def __call__(cls, *args, **kwargs):
-
-        print('  SubSpace.__call__(cls=%s, args=%s, kwargs=%s)' % (
-            cls, args, kwargs
-        ))
-        print()
-        return super().__call__(*args, **kwargs)
+#         print('  SubSpace.__call__(cls=%s, args=%s, kwargs=%s)' % (
+#             cls, args, kwargs
+#         ))
+#         print()
+#         return super().__call__(*args, **kwargs)
 
 
-class HyperSpace(SubSpace):
+# class HyperSpace(SubSpace):
 
-    def __new__(cls, name, bases, attrs):
-        print('  HyperSpace.__new__(cls=%s, name=%s, bases=%s, attrs=%s)' % (
-            cls, name, bases, attrs
-        ))
-        print()
-        attrs['__slots__'] = [a for a in attrs.keys() if not a.startswith('__')]
-        attrs['__slots__'] += ['_index', '_elements']
-        return super().__new__(cls, name, bases, attrs)
+    # def __new__(cls, name, bases, attrs):
+    #     print('  HyperSpace.__new__(cls=%s, name=%s, bases=%s, attrs=%s)' % (
+    #         cls, name, bases, attrs
+    #     ))
+    #     print()
+    #     attrs['__slots__'] = [a for a in attrs.keys() if not a.startswith('__')]
+    #     attrs['__slots__'] += ['_index', '_elements']
+    #     return super().__new__(cls, name, bases, attrs)
 
-    def __call__(cls, *args, **kwargs):
-        print('  HyperSpace.__call__(cls=%s, args=%s, kwargs=%s)' % (
-            cls, args, kwargs
-        ))
-        print()
-        name = args[0]
-        elements = args[1]
-        if not elements:
-            raise ValueError('elements cannot be empty')
-        if not check_all_elements_of_same_type(elements):
-            raise ValueError('Not all elements are of same type')
+    # def __call__(cls, *args, **kwargs):
+    #     print('  HyperSpace.__call__(cls=%s, args=%s, kwargs=%s)' % (
+    #         cls, args, kwargs
+    #     ))
+    #     print()
+    #     name = args[0]
+    #     elements = args[1]
+    #     if not elements:
+    #         raise ValueError('elements cannot be empty')
+    #     if not check_all_elements_of_same_type(elements):
+    #         raise ValueError('Not all elements are of same type')
 
-        tmp_class = super().__call__(*args, **kwargs)
-        ds_methods = [m for m, _ in inspect.getmembers(tmp_class, predicate=inspect.ismethod)]
-        e_methods = [m for m, _ in inspect.getmembers(elements[0], predicate=inspect.ismethod)]
-        e_methods = [m for m in e_methods if m not in ds_methods and not m.startswith('__')]
+    #     tmp_class = super().__call__(*args, **kwargs)
+    #     ds_methods = [m for m, _ in inspect.getmembers(tmp_class, predicate=inspect.ismethod)]
+    #     e_methods = [m for m, _ in inspect.getmembers(elements[0], predicate=inspect.ismethod)]
+    #     e_methods = [m for m in e_methods if m not in ds_methods and not m.startswith('__')]
 
-        attrs = {m: f for m, f in inspect.getmembers(cls, predicate=inspect.ismethod)}
+    #     attrs = {m: f for m, f in inspect.getmembers(cls, predicate=inspect.ismethod)}
 
-        new_attr = {m: print for m in e_methods}
-        attrs.update(new_attr)
-        # print('new:', attrs)
+    #     new_attr = {m: print for m in e_methods}
+    #     attrs.update(new_attr)
+    #     # print('new:', attrs)
 
-        newclass = cls.__new__(cls, cls.__name__, [object], attrs)
-        print(dir(newclass), newclass.__slots__)
-        # newclass = super().__call__(*args, **kwargs)
-        return newclass
+    #     newclass = cls.__new__(cls, cls.__name__, [object], attrs)
+    #     print(dir(newclass), newclass.__slots__)
+    #     # newclass = super().__call__(*args, **kwargs)
+    #     return newclass
 
 
 class DataSpace(object):
@@ -121,7 +121,6 @@ class DataSpace(object):
         e_methods = [m for m in e_methods if m not in ds_methods and not m.startswith('__')]
 
         for m in e_methods:
-            print('adding method', m)
             setattr(self, m, lambda e: getattr(e, m))
 
     def _add(self, name, value):
@@ -136,14 +135,15 @@ class DataSpace(object):
         self.__reload_index()
 
     def __contains__(self, name):
-        print(self._index)
         return _normalize_internal_path(name) in self._index
+
+    def __getitem__(self, name):
+        name = _normalize_internal_path(name)
+        return self._index[name]
 
     def __add_to_index(self, name, value):
         name = _normalize_internal_path(name)
         full_path = '.'.join([self._root, name])
-        print(f'Adding {full_path}={value} to index')
-        print(f'Adding {name}={value} to index')
         if name not in self._index and full_path not in self._index:
             self._index[name] = value
             self._index[full_path] = value
@@ -159,14 +159,7 @@ class DataSpace(object):
                     v.__reload_index()
                     self.__add_to_index('.'.join([name, n]), v)
             elif hasattr(value, 'keys'):
-                print("recursive engaged")
                 self.__recursive_index(value, [name])
-                # for n in value.keys():
-                #     print(name, value, ' - ', n, value[n], hasattr(value[n], 'keys'))
-                #     v = value[n]
-                #     n = n.decode('utf-8') if isinstance(n, bytes) else n
-                #     self.__add_to_index('.'.join([name, n]), v)
-            print(name, value)
             self.__add_to_index(name, value)
 
     def __recursive_index(self, collection, parents):
@@ -179,5 +172,4 @@ class DataSpace(object):
                 self.__recursive_index(v, parents + [n])
             else:
                 path = _normalize_internal_path('.'.join(parents + [n]))
-                print(path, v)
                 self.__add_to_index(path, v)

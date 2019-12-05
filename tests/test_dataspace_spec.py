@@ -36,9 +36,6 @@ class DummyTree:
     def __contains__(self, name):
         return name in self._vars or hasattr(self, name)
 
-    # def __item__(self, key):
-    #     return self._vars[key]
-
     def __getitem__(self, key):
         return self._vars[key]
 
@@ -133,15 +130,17 @@ def test_elements_of_same_type(elements):
     assert ds.check_all_elements_of_same_type(elements)
 
 
-@given(
-    st.dictionaries(
-        fspaths(allow_pathlike=False),
-        st.one_of(st.from_type(type).flatmap(st.from_type)
-                  .filter(lambda x: not isinstance(x, (type(None), bool)))),
-        min_size=2,
-        max_size=10,
-    )
-)
+@given(st.builds(zip,
+                 st.lists(st.text(min_size=1, max_size=10),
+                          min_size=2,
+                          unique=True),
+                 st.lists(st.from_type(type)
+                          .flatmap(st.from_type)
+                          .filter(lambda x: not isinstance(x, (type(None)))),
+                          min_size=2,
+                          unique_by=lambda x: type(x),
+                          ))
+       .map(dict))
 def test_elements_of_different_type(elements):
     assert not ds.check_all_elements_of_same_type(elements)
 
@@ -154,12 +153,13 @@ def test_invalid_elements():
         ds.DataSpace('test', [int(2), float(4)])
 
 
-def test_methods(dataspace, element):
-    ds_methods = [m for m, _ in inspect.getmembers(dataspace, predicate=inspect.ismethod)]
-    e_methods = [m for m, _ in inspect.getmembers(element, predicate=inspect.ismethod)]
-    # ds_methods = dir(dataspace)
-    # e_methods = dir(element)
-    assert ds_methods == e_methods
+# TODO: in next version?
+# def test_methods(dataspace, element):
+#     ds_methods = [m for m, _ in inspect.getmembers(dataspace, predicate=inspect.ismethod)]
+#     e_methods = [m for m, _ in inspect.getmembers(element, predicate=inspect.ismethod)]
+#     # ds_methods = dir(dataspace)
+#     # e_methods = dir(element)
+#     assert ds_methods == e_methods
 
 
 def test_index(dataspace_from_dict):
@@ -198,3 +198,23 @@ def test_contains_with_multiple_trees_from_file(dataspace_from_multiple_trees):
     assert 'l1CaloTowerEmuTree.L1CaloTowerTree.L1CaloTower.et' in ds
 
     assert 'DoesNotExist' not in ds
+
+
+def test_array(complex_dataspace):
+    data, trees = complex_dataspace
+    result = data['path2.dt2.emu.electron.pt']
+    assert result == trees['path2/dt2'].array('emu.electron.pt')
+
+
+def test_complex_access(complex_dataspace):
+    data, trees = complex_dataspace
+    for name in trees:
+        assert data[name]['a'] == trees[name]['a']
+        assert data[name + '.a'] == trees[name]['a']
+
+
+def test_complex_access_with_wrapper(complex_dataspace):
+    data, trees = complex_dataspace
+    result = data['path2.dt2.emu.electron.pt']
+
+    assert result == trees['path2/dt2'].array('emu.electron.pt')
