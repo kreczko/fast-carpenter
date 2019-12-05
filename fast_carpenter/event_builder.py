@@ -33,14 +33,18 @@ class BEventsWrapped(BEvents):
         if not isinstance(trees, (dict)):
             trees = {trees.name.decode('utf-8'): trees}
         print('tree', trees)
-        trees = {name: MaskedUprootTree(tree, ranges) for name, tree in trees.items()}
-        ds = dataspace.group(trees, name='input_trees')
+        # trees = {name: MaskedUprootTree(tree, ranges) for name, tree in trees.items()}
+        ds = dataspace.group('input_trees', trees)
         print(ds._elements)
         super(BEventsWrapped, self).__init__(ds, *args, **kwargs)
         ranges.set_owner(self)
 
     def _block_changed(self):
-        self.tree.notify(action=['reset_mask', 'reset_cache'])
+        # TODO: change in next verstion?
+        # self.tree.reset_mask()
+        # self.tree.reset_mask()
+        # self.tree['input_trees'].notify(actions=['reset_mask', 'reset_cache'])
+        pass
 
     def __getitem__(self, i):
         result = super(BEventsWrapped, self).__getitem__(self, i)

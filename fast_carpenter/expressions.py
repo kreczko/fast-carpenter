@@ -67,7 +67,7 @@ class TreeToDictAdaptor():
         if item in constants:
             return constants[item]
         full_item = self.aliases.get(item, item)
-        array = self.tree.array(full_item)
+        array = self.tree[full_item].array()
         array = self.strip_jaggedness(array)
         return array
 
