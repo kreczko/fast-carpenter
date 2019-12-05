@@ -230,8 +230,16 @@ def test_element_method(complex_dataspace):
 
 def test_access_with_multiple_trees_from_file(dataspace_from_multiple_trees):
     ds, trees = dataspace_from_multiple_trees
+    tree_names = ['l1CaloTowerEmuTree/L1CaloTowerTree', 'l1CaloTowerTree/L1CaloTowerTree']
     vars = ['et', 'iet']
-    for v in vars:
-        ds_array = ds['l1CaloTowerEmuTree.L1CaloTowerTree.L1CaloTower.' + v].array()
-        tree_array = trees['l1CaloTowerEmuTree/L1CaloTowerTree']['L1CaloTower'][v].array()
-        assert list(ds_array.content) == list(tree_array.content)
+    for t in tree_names:
+        for v in vars:
+            ds_array = ds[t + '.L1CaloTower.' + v].array()
+            tree_array = trees[t]['L1CaloTower'][v].array()
+            print(t, ds_array.starts, tree_array.starts)
+            assert list(ds_array.content) == list(tree_array.content)
+    assert False
+
+def test_pandas(dataspace_from_multiple_trees):
+    ds, _ = dataspace_from_multiple_trees
+    assert ds.pandas.df(ds, ['l1CaloTowerEmuTree.L1CaloTowerTree'], ['L1CaloTower.iet']) is not None

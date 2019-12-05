@@ -8,6 +8,7 @@ The DataSpace is a composable container for any objects.
 - objects under the same DataSpace need to be of the same type, i.e. have the same API
 - an object is contained  in a DataSpace if the object identifier can be found in the DataSpace index or the indices of sub-spaces
 """
+import functools
 import inspect
 
 
@@ -41,6 +42,16 @@ def group(group_name, elements):
 
 def _normalize_internal_path(path):
     return path.replace('/', '.')
+
+def pandas_wrap(func):
+    print('wrapping', func)
+    @functools.wraps
+    def df(*args, **kwargs):
+        ds = args.pop()
+        for e in ds._elements:
+            return e.pandas.df(*args, **kwargs)
+    func.df = df
+    return df
 
 # TODO: in next version?
 # class SubSpace(type):
@@ -192,3 +203,23 @@ class DataSpace(object):
                 results[action][name] = getattr(element, action)(*args, **kwargs)
         self.__reload_index()
         return results
+
+    def keys(self):
+        return [k.encode('utf-8') for k in self._index.keys()]
+
+
+    def df(self, *args, **kwargs):
+        inputs = args[0]
+        args = args[1:]
+        for i in inputs:
+            return self[i].pandas.df(*args, **kwargs)
+        # for name, e in self._elements.items():
+        #     return e.pandas.df(*args, **kwargs)
+
+    def pandas(self):
+        pass
+
+    pandas.df = df
+
+
+
