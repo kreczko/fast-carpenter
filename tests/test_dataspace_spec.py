@@ -227,3 +227,11 @@ def test_element_method(complex_dataspace):
     ds.notify(actions=['add_var'], name='notyethere', value=42.2)
     assert 'path1.dt1.notyethere' in ds
     assert ds['path1.dt1.notyethere'] == 42.2
+
+def test_access_with_multiple_trees_from_file(dataspace_from_multiple_trees):
+    ds, trees = dataspace_from_multiple_trees
+    vars = ['et', 'iet']
+    for v in vars:
+        ds_array = ds['l1CaloTowerEmuTree.L1CaloTowerTree.L1CaloTower.' + v].array()
+        tree_array = trees['l1CaloTowerEmuTree/L1CaloTowerTree']['L1CaloTower'][v].array()
+        assert list(ds_array.content) == list(tree_array.content)
