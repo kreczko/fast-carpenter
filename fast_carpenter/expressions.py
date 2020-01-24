@@ -67,8 +67,11 @@ class TreeToDictAdaptor():
         if item in constants:
             return constants[item]
         full_item = self.aliases.get(item, item)
-        array = self.tree[full_item].array()
-        array = self.strip_jaggedness(array)
+        array = self.tree[full_item]
+        print(str(type(array)))
+        if 'uproot' in str(type(array)):
+            array = array.array()
+            array = self.strip_jaggedness(array)
         return array
 
     def __contains__(self, item):

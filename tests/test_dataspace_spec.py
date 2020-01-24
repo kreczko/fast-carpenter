@@ -90,10 +90,10 @@ def dataspace_from_multiple_trees(owner):
     filename = "tests/data/CMS_L1T_study.root"
     trees = ['l1CaloTowerEmuTree/L1CaloTowerTree', 'l1CaloTowerTree/L1CaloTowerTree']
     f = uproot.open(filename)
-    ranges = EventRanger()
     # trees = {tree: MaskedUprootTree(f[tree], ranges) for tree in trees}
     trees = {tree: f[tree] for tree in trees}
     data = ds.group('input_trees', trees)
+    ranges = EventRanger()
     ranges.set_owner(owner)
     return data, trees
 
@@ -243,3 +243,10 @@ def test_access_with_multiple_trees_from_file(dataspace_from_multiple_trees):
 def test_pandas(dataspace_from_multiple_trees):
     ds, _ = dataspace_from_multiple_trees
     assert ds.pandas.df(ds, ['l1CaloTowerEmuTree.L1CaloTowerTree'], ['L1CaloTower.iet']) is not None
+
+
+def test_len_from_multiple_trees(dataspace_from_multiple_trees):
+    ds, trees = dataspace_from_multiple_trees
+    for name, tree in trees.items():
+        print(name, len(tree), len(ds))
+        assert len(tree) == len(ds)

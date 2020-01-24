@@ -166,7 +166,8 @@ class BinnedDataframe():
         self.out_dir = out_dir
         ins, outs, binnings = cfg.create_binning_list(self.name, binning)
         self._bin_dims = ins
-        self.potential_inputs = set(sum((re.findall(r"\w+", dim) for dim in self._bin_dims), []))
+        # self.potential_inputs = set(sum((re.findall(r"\w+", dim) for dim in self._bin_dims), []))
+        self.potential_inputs = set(self._bin_dims)
         self._out_bin_dims = outs
         self._binnings = binnings
         self._dataset_col = dataset_col
@@ -195,7 +196,9 @@ class BinnedDataframe():
         else:
             weights = None
 
-        data = chunk.tree.pandas.df(all_inputs, flatten=False)
+        print('all_inputs', all_inputs, self.potential_inputs)
+        print(chunk.tree.pandas.df)
+        data = chunk.tree.pandas.df(chunk.tree, all_inputs, flatten=False)
         data = explode(data)
 
         binned_values = _bin_values(data, dimensions=self._bin_dims,
@@ -280,6 +283,7 @@ def explode(df):
     lens = pd.DataFrame({col: df[col].str.len() for col in lst_cols})
     different_length = (lens.nunique(axis=1) > 1).any()
     if different_length:
+        print(lens)
         raise ValueError("Cannot bin multiple arrays with different jaggedness")
     lens = lens[lst_cols[0]]
 

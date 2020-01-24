@@ -11,6 +11,8 @@ The DataSpace is a composable container for any objects.
 import functools
 import inspect
 
+import pandas as pd
+
 
 def check_all_elements_of_same_type(elements):
     if not elements:
@@ -153,11 +155,19 @@ class DataSpace(object):
         if name not in self._index:
             print(name, 'not in', list(self._index.keys()))
         return self._index[name]
+    
+    def __setitem__(self, name, value):
+        name = _normalize_internal_path(name)
+        if name in self._index:
+            raise ValueError('Variable {} already ecists!'.format(name))
+        # TODO: tree_wraper wraps this in an uproot array
+        self._index[name] = value
 
     def __len__(self):
         first_e = next(iter(self._elements.values()))
         if hasattr(first_e, '__len__'):
-            return max([len(e) for e in self._elements])
+            print('first_e', first_e, len(first_e))
+            return max([len(e) for e in self._elements.values()])
         return len(self._elements)
 
     def __add_to_index(self, name, value):
@@ -207,19 +217,43 @@ class DataSpace(object):
     def keys(self):
         return [k.encode('utf-8') for k in self._index.keys()]
 
+    def _find_tree_and_branch(self, path):
+        tree, branch = None, None
+        tokens = path.split('.')
+        for i, t in enumerate(tokens):
+            tmp = t
+                
+            if i > 0:
+                tmp = '.'.join(tokens[:i])
+            if tmp in self:
+                if 'Tree' in str(type(self[tmp])):
+                    return self[tmp], '.'.join(tokens[i:])
+        return self[path], path
 
     def df(self, *args, **kwargs):
+        print(self, args, kwargs)
         inputs = args[0]
         args = args[1:]
+        results = {}
         for i in inputs:
-            return self[i].pandas.df(*args, **kwargs)
+            results[i] = self[i].array()
+            print(i, len(results[i]))
+            # results.append(pd.DataFrame(data=self[i].array().flatten(), columns=[i]))
+            # tree, branch = self._find_tree_and_branch(i)
+            # print(tree.keys())
+            # TODO: for branches we need to retrieve the tree first and forward just the branch name to pandas.df
+            # return tree.pandas.df(branch, *args, **kwargs)
         # for name, e in self._elements.items():
         #     return e.pandas.df(*args, **kwargs)
+        return pd.DataFrame.from_dict(results)
 
     def pandas(self):
         pass
 
     pandas.df = df
+
+    def new_variable(self, name, value):
+        self[name] = value
 
 
 

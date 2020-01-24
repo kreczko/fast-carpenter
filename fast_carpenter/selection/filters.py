@@ -164,6 +164,7 @@ class All(BaseFilter):
             excl_mask = sel(data, is_mc,
                             current_mask=combine_op(current_mask, mask),
                             combine_op=safe_and)
+            print(len(mask), len(excl_mask), len(data))
             new_mask = mask & excl_mask
             sel.increment_counters(data, is_mc, excl=excl_mask,
                                    after=new_mask, before=mask)

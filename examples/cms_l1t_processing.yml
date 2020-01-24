@@ -1,6 +1,17 @@
 stages:
     # - diff: "fast_carpenter.Define"
+    - var_def: "fast_carpenter.Define"
+    - event_selection: 'fast_carpenter.CutFlow'
     - histogram: "fast_carpenter.BinnedDataframe"
+
+var_def:
+    variables:
+        - nCaloTower: {reduce: count_nonzero, formula: 'l1CaloTowerTree.L1CaloTowerTree.L1CaloTower.et'}
+
+event_selection:
+    selection:
+        All: 
+            - nCaloTower > 0
 
 diff:
     variables:
