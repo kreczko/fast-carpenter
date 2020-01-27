@@ -30,17 +30,18 @@ class EventRanger():
 class BEventsWrapped(BEvents):
     def __init__(self, trees, *args, **kwargs):
         ranges = EventRanger()
+        # TODO: this should be independent of "trees" - a simple contract between data format
+        # and BEventsWrapped should be enough
         if not isinstance(trees, (dict)):
             trees = {trees.name.decode('utf-8'): trees}
-        print('tree', trees)
         # trees = {name: MaskedUprootTree(tree, ranges) for name, tree in trees.items()}
         ds = dataspace.group('input_trees', trees)
-        print(ds._elements)
         super(BEventsWrapped, self).__init__(ds, *args, **kwargs)
         ranges.set_owner(self)
 
     def _block_changed(self):
-        # TODO: change in next verstion?
+        # TODO: Do we need to reset the mask/cache here?
+        # block changes should be injected --> self.tree.blockchange()
         # self.tree.reset_mask()
         # self.tree.reset_mask()
         # self.tree['input_trees'].notify(actions=['reset_mask', 'reset_cache'])
