@@ -106,7 +106,7 @@ def element():
             self._content = [1, 2, 3]
 
         def array(self):
-            return self.content
+            return self._content
 
     return Element()
 
@@ -236,17 +236,16 @@ def test_access_with_multiple_trees_from_file(dataspace_from_multiple_trees):
         for v in vars:
             ds_array = ds[t + '.L1CaloTower.' + v].array()
             tree_array = trees[t]['L1CaloTower'][v].array()
-            print(t, ds_array.starts, tree_array.starts)
             assert list(ds_array.content) == list(tree_array.content)
-    assert False
 
 def test_pandas(dataspace_from_multiple_trees):
     ds, _ = dataspace_from_multiple_trees
-    assert ds.pandas.df(ds, ['l1CaloTowerEmuTree.L1CaloTowerTree'], ['L1CaloTower.iet']) is not None
+    array = ds.pandas.df(ds, ['l1CaloTowerEmuTree.L1CaloTowerTree.L1CaloTower.iet'])
+    assert array is not None
+    assert len(array) == 1853
 
 
 def test_len_from_multiple_trees(dataspace_from_multiple_trees):
     ds, trees = dataspace_from_multiple_trees
-    for name, tree in trees.items():
-        print(name, len(tree), len(ds))
+    for tree in trees.values():
         assert len(tree) == len(ds)
