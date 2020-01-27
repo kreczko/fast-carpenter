@@ -189,15 +189,16 @@ class BinnedDataframe():
         return Collector(outfilename, self._dataset_col, binnings=binnings, file_format=self._file_format)
 
     def event(self, chunk):
-        all_inputs = [key for key in chunk.tree.keys() if key.decode() in self.potential_inputs]
+        # TODO: this needs to be agnostic to input - for key in data - should be enough
+        all_inputs = [key.decode() for key in chunk.tree.keys() if key.decode() in self.potential_inputs]
         if chunk.config.dataset.eventtype == "mc":
             weights = list(self._weights.values())
             all_inputs += weights
         else:
             weights = None
 
-        print('all_inputs', all_inputs, self.potential_inputs)
-        print(chunk.tree.pandas.df)
+        # TODO: this needs to be agnostic to input - chunk or no chunk
+        # data --> chunk.pandas.DataFrame.from_inputs(all_inputs, flatten=False)
         data = chunk.tree.pandas.df(chunk.tree, all_inputs, flatten=False)
         data = explode(data)
 
@@ -283,7 +284,6 @@ def explode(df):
     lens = pd.DataFrame({col: df[col].str.len() for col in lst_cols})
     different_length = (lens.nunique(axis=1) > 1).any()
     if different_length:
-        print(lens)
         raise ValueError("Cannot bin multiple arrays with different jaggedness")
     lens = lens[lst_cols[0]]
 
