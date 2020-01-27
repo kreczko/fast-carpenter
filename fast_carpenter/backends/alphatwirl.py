@@ -2,7 +2,6 @@
 Functions to run a job using alphatwirl
 """
 
-import uproot
 from atuproot.BEvents import BEvents
 from ..masked_tree import MaskedUprootTree
 from .. import dataspace
@@ -32,14 +31,9 @@ class EventRanger():
 
 
 class BEventsWrapped(BEvents):
-    def __init__(self, trees, *args, **kwargs):
+    def __init__(self, ds, *args, **kwargs):
         ranges = EventRanger()
-        # TODO: this should be independent of "trees" - a simple contract between data format
-        # and BEventsWrapped should be enough
-        if not isinstance(trees, (dict)):
-            trees = {trees.name.decode('utf-8'): trees}
-        # trees = {name: MaskedUprootTree(tree, ranges) for name, tree in trees.items()}
-        ds = dataspace.group('input_trees', trees)
+        # TODO: include ranges to dataspace
         super(BEventsWrapped, self).__init__(ds, *args, **kwargs)
         ranges.set_owner(self)
 
@@ -74,22 +68,8 @@ class EventBuilder(object):
         )
 
     def __call__(self):
-        if len(self.config.inputPaths) != 1:
-            # TODO - support multiple inputPaths
-            raise AttributeError("Multiple inputPaths not yet supported")
-
-        # Try to open the tree - some machines have configured limitations
-        # which prevent memmaps from begin created. Use a fallback - the
-        # localsource option
-        try:
-            rootfile = uproot.open(self.config.inputPaths[0])
-            trees = { treeName: rootfile[treeName] for treeName in self.config.treeName}
-        except MemoryError:
-            rootfile = uproot.open(self.config.inputPaths[0],
-                                   localsource=uproot.FileSource.defaults)
-            trees = {treeName: rootfile[treeName] for treeName in self.config.treeName}
-
-        events = BEventsWrapped(trees,
+        ds = dataspace.from_paths(self.config.inputPaths, self.config.treeName)
+        events = BEventsWrapped(ds,
                                 self.config.nevents_per_block,
                                 self.config.start_block,
                                 self.config.stop_block)
