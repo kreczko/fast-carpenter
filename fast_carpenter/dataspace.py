@@ -11,6 +11,7 @@ The DataSpace is a composable container for any objects.
 import functools
 import inspect
 
+import numpy as np
 import pandas as pd
 
 
@@ -43,15 +44,19 @@ def group(group_name, elements):
 
 
 def _normalize_internal_path(path):
-    return path.replace('/', '.')
+    if type(path) is str:
+        return path.replace('/', '.')
+    if type(path) is bytes:
+        return path.replace(b'/', b'.').decode('utf-8')
+    return path
 
 def pandas_wrap(func):
-    print('wrapping', func)
+    # print('wrapping', func)
     @functools.wraps
     def df(*args, **kwargs):
-        ds = args.pop()
+        ds = args[0]
         for e in ds._elements:
-            return e.pandas.df(*args, **kwargs)
+            return e.pandas.df(*args[1:], **kwargs)
     func.df = df
     return df
 
@@ -125,18 +130,20 @@ class DataSpace(object):
         self._root = _normalize_internal_path(name)
         self._index = {self._root: self}
         self._elements = elements if elements is not None else {}
+        self._mask = None
 
         self.__reload_index()
 
     def __load_element_functions(self):
         ds_methods = [m for m, _ in inspect.getmembers(self, predicate=inspect.ismethod)]
-        e_methods = [m for m, in inspect.getmembers(elements[0], predicate=inspect.ismethod)]
+        e_methods = [m for m, in inspect.getmembers(self._elements[0], predicate=inspect.ismethod)]
         e_methods = [m for m in e_methods if m not in ds_methods and not m.startswith('__')]
 
         for m in e_methods:
             setattr(self, m, lambda e: getattr(e, m))
 
     def _add(self, name, value):
+        name = n.name('utf-8') if type(name) is bytes else name
         if name in self._elements:
             raise KeyError('Element {} already exists'.format(name))
         self._elements[name] = value
@@ -155,7 +162,7 @@ class DataSpace(object):
         if name not in self._index:
             print(name, 'not in', list(self._index.keys()))
         return self._index[name]
-    
+
     def __setitem__(self, name, value):
         name = _normalize_internal_path(name)
         if name in self._index:
@@ -166,7 +173,7 @@ class DataSpace(object):
     def __len__(self):
         first_e = next(iter(self._elements.values()))
         if hasattr(first_e, '__len__'):
-            print('first_e', first_e, len(first_e))
+            # print('first_e', first_e, len(first_e))
             return max([len(e) for e in self._elements.values()])
         return len(self._elements)
 
@@ -209,7 +216,7 @@ class DataSpace(object):
         for action in actions:
             results[action] = {}
             for name, element in self._elements.items():
-                print(action, name, element, args, kwargs)
+                # print(action, name, element, args, kwargs)
                 results[action][name] = getattr(element, action)(*args, **kwargs)
         self.__reload_index()
         return results
@@ -218,11 +225,11 @@ class DataSpace(object):
         return [k.encode('utf-8') for k in self._index.keys()]
 
     def _find_tree_and_branch(self, path):
-        tree, branch = None, None
+        # tree, branch = None, None
         tokens = path.split('.')
         for i, t in enumerate(tokens):
             tmp = t
-                
+
             if i > 0:
                 tmp = '.'.join(tokens[:i])
             if tmp in self:
@@ -233,10 +240,9 @@ class DataSpace(object):
     def df(self, *args, **kwargs):
         print(self, args, kwargs)
         inputs = args[0]
-        args = args[1:]
         results = {}
         for i in inputs:
-            results[i] = self[i].array()
+            results[i] = self[i].array(*args[1:])
             print(i, len(results[i]))
             # results.append(pd.DataFrame(data=self[i].array().flatten(), columns=[i]))
             # tree, branch = self._find_tree_and_branch(i)
@@ -253,7 +259,21 @@ class DataSpace(object):
     pandas.df = df
 
     def new_variable(self, name, value):
+        name = name('utf-8') if type(name) is bytes else name
         self[name] = value
+
+    def apply_mask(self, new_mask):
+        if self._mask is None:
+            self._mask = _normalise_mask(new_mask, len(self))
+        else:
+            self._mask = self._mask[new_mask]
+
+def _normalise_mask(mask, tree_length):
+    if isinstance(mask, (tuple, list)):
+        mask = np.array(mask)
+    elif not isinstance(mask, np.ndarray):
+        raise RuntimeError("mask is not a numpy array, a list, or a tuple")
+    return mask
 
 
 
