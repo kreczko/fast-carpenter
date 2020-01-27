@@ -14,6 +14,9 @@ import inspect
 import numpy as np
 import pandas as pd
 
+import uproot
+
+
 
 def check_all_elements_of_same_type(elements):
     if not elements:
@@ -21,7 +24,7 @@ def check_all_elements_of_same_type(elements):
     if not isinstance(elements, dict):
         raise ValueError('elements need to be of type "dict"')
     t = type(next(iter(elements.values())))
-    return all(isinstance(e, t) for e in elements.values())
+    return all(type(e) is t for e in elements.values())
 
 
 def group(group_name, elements):
@@ -34,6 +37,8 @@ def group(group_name, elements):
     newGroup = DataSpace(name=group_name)
     groups = {}
     for name, item in elements.items():
+        name = name.decode('utf-8') if type(name) is bytes else name
+        print('item:', name, item)
         if isinstance(item, dict):
             tmpGroup = group(name, item)
             groups[name] = tmpGroup
@@ -42,6 +47,21 @@ def group(group_name, elements):
     newGroup._update(groups)
     return newGroup
 
+def from_paths(paths, treeNames):
+    if len(paths) != 1:
+        # TODO - support multiple paths
+        raise AttributeError("Multiple inputPaths not yet supported")
+
+    try:
+        rootfile = uproot.open(paths[0])
+        trees = { treeName: rootfile[treeName] for treeName in treeNames}
+    except MemoryError:
+        rootfile = uproot.open(paths[0], localsource=uproot.FileSource.defaults)
+        trees = {treeName: rootfile[treeName] for treeName in treeNames}
+    # return trees
+    # trees = {name.decode('utf-8'): tree for name, tree in trees.items() if type(name) is bytes}
+    ds = group('input_trees', trees)
+    return ds
 
 def _normalize_internal_path(path):
     if type(path) is str:
@@ -143,7 +163,7 @@ class DataSpace(object):
             setattr(self, m, lambda e: getattr(e, m))
 
     def _add(self, name, value):
-        name = n.name('utf-8') if type(name) is bytes else name
+        name = name.decode('utf-8') if type(name) is bytes else name
         if name in self._elements:
             raise KeyError('Element {} already exists'.format(name))
         self._elements[name] = value
@@ -181,6 +201,7 @@ class DataSpace(object):
         name = _normalize_internal_path(name)
         full_path = '.'.join([self._root, name])
         if name not in self._index and full_path not in self._index:
+            name = name.decode('utf-8') if type(name) is bytes else name
             self._index[name] = value
             self._index[full_path] = value
 
