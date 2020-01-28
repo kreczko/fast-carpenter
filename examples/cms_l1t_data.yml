@@ -1,7 +1,7 @@
 datasets:
   - eventtype: null
     files:
-      - tests/data/CMS_L1T_study.root
+      - http://fast-hep-data.web.cern.ch/fast-hep-data/cms/L1T/CMS_L1T_study.root
     name: test
     nevents:
       l1CaloTowerEmuTree/L1CaloTowerTree: 1853
