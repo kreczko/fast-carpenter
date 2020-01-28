@@ -6,6 +6,8 @@ import inspect
 import pytest
 import types
 
+from numpy.testing import assert_array_equal
+import pandas as pd
 import uproot
 
 import fast_carpenter.dataspace as ds
@@ -239,10 +241,16 @@ def test_access_with_multiple_trees_from_file(dataspace_from_multiple_trees):
             assert list(ds_array.content) == list(tree_array.content)
 
 def test_pandas(dataspace_from_multiple_trees):
-    ds, _ = dataspace_from_multiple_trees
-    array = ds.pandas.df(ds, ['l1CaloTowerEmuTree.L1CaloTowerTree.L1CaloTower.iet'])
-    assert array is not None
-    assert len(array) == 1853
+    ds, trees = dataspace_from_multiple_trees
+    df = ds.pandas.df(ds, ['l1CaloTowerEmuTree.L1CaloTowerTree.L1CaloTower.iet'], flatten=True)
+    assert df is not None
+    assert len(df) == 1319442
+
+    tree_array = trees['l1CaloTowerEmuTree/L1CaloTowerTree']['L1CaloTower']['iet'].array()
+    tree_df = pd.DataFrame(data=tree_array.flatten(), columns=['L1CaloTower.iet'])
+
+    assert len(tree_df) == len(df)
+    assert_array_equal(df['l1CaloTowerEmuTree.L1CaloTowerTree.L1CaloTower.iet'], tree_df['L1CaloTower.iet'])
 
 
 def test_len_from_multiple_trees(dataspace_from_multiple_trees):

@@ -263,15 +263,7 @@ class DataSpace(object):
         inputs = args[0]
         results = {}
         for i in inputs:
-            results[i] = self[i].array(*args[1:])
-            print(i, len(results[i]))
-            # results.append(pd.DataFrame(data=self[i].array().flatten(), columns=[i]))
-            # tree, branch = self._find_tree_and_branch(i)
-            # print(tree.keys())
-            # TODO: for branches we need to retrieve the tree first and forward just the branch name to pandas.df
-            # return tree.pandas.df(branch, *args, **kwargs)
-        # for name, e in self._elements.items():
-        #     return e.pandas.df(*args, **kwargs)
+            results[i] = self[i].array(*args[1:], **kwargs)
         return pd.DataFrame.from_dict(results)
 
     def pandas(self):
