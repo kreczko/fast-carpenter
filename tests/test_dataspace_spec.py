@@ -87,7 +87,7 @@ def owner():
 
 @pytest.fixture
 def dataspace_from_multiple_trees(owner):
-    filename = "tests/data/CMS_L1T_study.root"
+    filename = "http://fast-hep-data.web.cern.ch/fast-hep-data/cms/L1T/CMS_L1T_study.root"
     trees = ['l1CaloTowerEmuTree/L1CaloTowerTree', 'l1CaloTowerTree/L1CaloTowerTree']
 
     f = uproot.open(filename)
