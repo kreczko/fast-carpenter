@@ -47,16 +47,16 @@ def group(group_name, elements):
     newGroup._update(groups)
     return newGroup
 
-def from_paths(paths, treeNames):
-    if len(paths) != 1:
+def from_file_paths(file_paths, treeNames):
+    if len(file_paths) != 1:
         # TODO - support multiple paths
-        raise AttributeError("Multiple inputPaths not yet supported")
+        raise AttributeError("Multiple file paths not yet supported")
 
     try:
-        rootfile = uproot.open(paths[0])
+        rootfile = uproot.open(file_paths[0])
         trees = { treeName: rootfile[treeName] for treeName in treeNames}
     except MemoryError:
-        rootfile = uproot.open(paths[0], localsource=uproot.FileSource.defaults)
+        rootfile = uproot.open(file_paths[0], localsource=uproot.FileSource.defaults)
         trees = {treeName: rootfile[treeName] for treeName in treeNames}
     # return trees
     # trees = {name.decode('utf-8'): tree for name, tree in trees.items() if type(name) is bytes}

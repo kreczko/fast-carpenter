@@ -68,7 +68,7 @@ class EventBuilder(object):
         )
 
     def __call__(self):
-        ds = dataspace.from_paths(self.config.inputPaths, self.config.treeName)
+        ds = dataspace.from_file_paths(self.config.inputPaths, self.config.treeName)
         events = BEventsWrapped(ds,
                                 self.config.nevents_per_block,
                                 self.config.start_block,

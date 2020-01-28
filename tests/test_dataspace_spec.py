@@ -94,7 +94,7 @@ def dataspace_from_multiple_trees(owner):
 
     f = uproot.open(filename)
     trees = {tree: f[tree] for tree in trees}
-    data = ds.from_paths([filename], trees)
+    data = ds.from_file_paths([filename], trees)
     ranges = EventRanger()
     ranges.set_owner(owner)
     return data, trees
