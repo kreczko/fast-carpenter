@@ -10,7 +10,7 @@ var_def:
 
 event_selection:
     selection:
-        All: 
+        All:
             - nCaloTower > 0
 
 diff:
@@ -21,4 +21,4 @@ histogram:
     binning:
         # - {in: diff_emu, bins: {edges: [-100, -50, -20, 0, 20, 50, 100]}}
         - {in: "l1CaloTowerTree.L1CaloTowerTree.L1CaloTower.iet", out: iet, bins: {edges: [0, 200, 400, 700, 1000]}}
-        - {in: "l1CaloTowerEmuTree.L1CaloTowerTree.L1CaloTower.iet", out: emu_iet, bins: {edges: [0, 200, 400, 700, 1000]}}
+        # - {in: "l1CaloTowerEmuTree.L1CaloTowerTree.L1CaloTower.iet", out: emu_iet, bins: {edges: [0, 200, 400, 700, 1000]}}

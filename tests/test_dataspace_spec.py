@@ -6,7 +6,9 @@ import inspect
 import pytest
 import types
 
+import math
 from numpy.testing import assert_array_equal
+import numpy as np
 import pandas as pd
 import uproot
 
@@ -257,3 +259,27 @@ def test_len_from_multiple_trees(dataspace_from_multiple_trees):
     ds, trees = dataspace_from_multiple_trees
     for tree in trees.values():
         assert len(tree) == len(ds)
+
+
+def test_mask(dataspace_from_multiple_trees):
+    ds, trees = dataspace_from_multiple_trees
+    mask = np.ones(len(ds))
+    # all odd entries should be 0
+    mask[0::2] = False
+    n_zeros = np.count_nonzero(mask)
+    assert n_zeros == math.floor(len(mask)/2.0)
+    passing_entries = len(mask) - n_zeros
+    ds.apply_mask(mask)
+    arrays = trees['l1CaloTowerEmuTree/L1CaloTowerTree'].arrays(namedecode="utf-8")
+    print(trees['l1CaloTowerEmuTree/L1CaloTowerTree'].keys())
+    print(trees['l1CaloTowerEmuTree/L1CaloTowerTree']['CaloTP'].keys())
+    print(trees['l1CaloTowerEmuTree/L1CaloTowerTree']['L1CaloTower'].keys())
+    print(trees['l1CaloTowerEmuTree/L1CaloTowerTree']['L1CaloCluster'].keys())
+    print(arrays.keys())
+    array = arrays['L1CaloTower']['iet']
+    print(np.shape(array), np.shape(mask))
+    new_mask = np.repeat(mask, array.counts)
+    print(np.shape(new_mask))
+    assert len(array.content[new_mask]) == passing_entries
+    assert len(ds) == passing_entries
+

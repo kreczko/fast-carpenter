@@ -16,6 +16,7 @@ import pandas as pd
 
 import uproot
 
+# TODO: Automatically managed caches with possibility of using memcached (useful for multicore)
 
 
 def check_all_elements_of_same_type(elements):
@@ -58,8 +59,6 @@ def from_file_paths(file_paths, treeNames):
     except MemoryError:
         rootfile = uproot.open(file_paths[0], localsource=uproot.FileSource.defaults)
         trees = {treeName: rootfile[treeName] for treeName in treeNames}
-    # return trees
-    # trees = {name.decode('utf-8'): tree for name, tree in trees.items() if type(name) is bytes}
     ds = group('input_trees', trees)
     return ds
 
@@ -71,7 +70,6 @@ def _normalize_internal_path(path):
     return path
 
 def pandas_wrap(func):
-    # print('wrapping', func)
     @functools.wraps
     def df(*args, **kwargs):
         ds = args[0]
@@ -140,8 +138,6 @@ def pandas_wrap(func):
 
 
 class DataSpace(object):
-
-    # __slots__ = ['_index', '_elements', '_methods']
 
     def __init__(self, name, elements=None):
         if elements is not None and not check_all_elements_of_same_type(elements):

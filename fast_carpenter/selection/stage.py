@@ -218,6 +218,7 @@ class CutFlow(object):
 
     def event(self, chunk):
         is_mc = chunk.config.dataset.eventtype == "mc"
+        # TODO: chunk should be just a container with apply_mask
         new_mask = self.selection(chunk.tree, is_mc)
         chunk.tree.apply_mask(new_mask)
 
