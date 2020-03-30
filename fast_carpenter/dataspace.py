@@ -157,10 +157,10 @@ class DataSpaceView(object):
             return getattr(self._obj, name)
         return super().__getattr__(name)
 
-    def array(self):
+    def array(self, *args, **kwargs):
         if self._mask is not None:
-            return self._obj.array()[self._mask]
-        return self._obj.array()
+            return self._obj.array(*args, **kwargs)[self._mask]
+        return self._obj.array(*args, **kwargs)
 
     def raw(self):
         return self._obj

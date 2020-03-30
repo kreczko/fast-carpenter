@@ -289,3 +289,16 @@ def test_mask(dataspace_from_multiple_trees):
 
     assert len(filtered) == len(ds_filtered)
     assert list(filtered.content) == list(ds_filtered.content)
+
+
+def test_array_args(dataspace_from_multiple_trees):
+    ds, trees = dataspace_from_multiple_trees
+
+    arrays = trees['l1CaloTowerEmuTree/L1CaloTowerTree'].arrays(
+        namedecode="utf-8", recursive='/')
+    array = arrays['L1CaloTowerTree/L1CaloCluster/et']
+
+    ds_flatten = ds['l1CaloTowerEmuTree.L1CaloTowerTree.L1CaloCluster.et'].array(flatten=True)
+
+    assert list(array.content) == list(ds_flatten)
+
