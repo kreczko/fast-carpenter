@@ -2,9 +2,7 @@ from collections import namedtuple
 from hypothesis import given
 from hypothesis_fspaths import fspaths
 import hypothesis.strategies as st
-import inspect
 import pytest
-import types
 
 import math
 from numpy.testing import assert_array_equal
@@ -13,7 +11,7 @@ import pandas as pd
 import uproot
 
 import fast_carpenter.dataspace as ds
-from fast_carpenter.masked_tree import MaskedUprootTree
+# from fast_carpenter.masked_tree import MaskedUprootTree
 from fast_carpenter.backends.alphatwirl import EventRanger
 
 
@@ -91,8 +89,10 @@ def owner():
 
 @pytest.fixture
 def dataspace_from_multiple_trees(owner):
-    filename = "http://fast-hep-data.web.cern.ch/fast-hep-data/cms/L1T/CMS_L1T_study.root"
-    trees = ['l1CaloTowerEmuTree/L1CaloTowerTree', 'l1CaloTowerTree/L1CaloTowerTree']
+    # filename = "http://fast-hep-data.web.cern.ch/fast-hep-data/cms/L1T/CMS_L1T_study.root"
+    filename = "data/CMS_L1T_study.root"
+    trees = ['l1CaloTowerEmuTree/L1CaloTowerTree',
+             'l1CaloTowerTree/L1CaloTowerTree']
 
     f = uproot.open(filename)
     trees = {tree: f[tree] for tree in trees}
@@ -232,9 +232,11 @@ def test_element_method(complex_dataspace):
     assert 'path1.dt1.notyethere' in ds
     assert ds['path1.dt1.notyethere'] == 42.2
 
+
 def test_access_with_multiple_trees_from_file(dataspace_from_multiple_trees):
     ds, trees = dataspace_from_multiple_trees
-    tree_names = ['l1CaloTowerEmuTree/L1CaloTowerTree', 'l1CaloTowerTree/L1CaloTowerTree']
+    tree_names = ['l1CaloTowerEmuTree/L1CaloTowerTree',
+                  'l1CaloTowerTree/L1CaloTowerTree']
     vars = ['et', 'iet']
     for t in tree_names:
         for v in vars:
@@ -242,17 +244,21 @@ def test_access_with_multiple_trees_from_file(dataspace_from_multiple_trees):
             tree_array = trees[t]['L1CaloTower'][v].array()
             assert list(ds_array.content) == list(tree_array.content)
 
+
 def test_pandas(dataspace_from_multiple_trees):
     ds, trees = dataspace_from_multiple_trees
-    df = ds.pandas.df(ds, ['l1CaloTowerEmuTree.L1CaloTowerTree.L1CaloTower.iet'], flatten=True)
+    df = ds.pandas.df(
+        ds, ['l1CaloTowerEmuTree.L1CaloTowerTree.L1CaloTower.iet'], flatten=True)
     assert df is not None
     assert len(df) == 1319442
 
     tree_array = trees['l1CaloTowerEmuTree/L1CaloTowerTree']['L1CaloTower']['iet'].array()
-    tree_df = pd.DataFrame(data=tree_array.flatten(), columns=['L1CaloTower.iet'])
+    tree_df = pd.DataFrame(data=tree_array.flatten(),
+                           columns=['L1CaloTower.iet'])
 
     assert len(tree_df) == len(df)
-    assert_array_equal(df['l1CaloTowerEmuTree.L1CaloTowerTree.L1CaloTower.iet'], tree_df['L1CaloTower.iet'])
+    assert_array_equal(
+        df['l1CaloTowerEmuTree.L1CaloTowerTree.L1CaloTower.iet'], tree_df['L1CaloTower.iet'])
 
 
 def test_len_from_multiple_trees(dataspace_from_multiple_trees):
@@ -263,23 +269,23 @@ def test_len_from_multiple_trees(dataspace_from_multiple_trees):
 
 def test_mask(dataspace_from_multiple_trees):
     ds, trees = dataspace_from_multiple_trees
-    mask = np.ones(len(ds))
+    mask = np.ones(len(ds), dtype=bool)
     # all odd entries should be 0
     mask[0::2] = False
-    n_zeros = np.count_nonzero(mask)
-    assert n_zeros == math.floor(len(mask)/2.0)
-    passing_entries = len(mask) - n_zeros
+    passing_entries = np.count_nonzero(mask)
+    assert passing_entries == math.floor(len(mask)/2.0)
+
     ds.apply_mask(mask)
-    arrays = trees['l1CaloTowerEmuTree/L1CaloTowerTree'].arrays(namedecode="utf-8")
-    print(trees['l1CaloTowerEmuTree/L1CaloTowerTree'].keys())
-    print(trees['l1CaloTowerEmuTree/L1CaloTowerTree']['CaloTP'].keys())
-    print(trees['l1CaloTowerEmuTree/L1CaloTowerTree']['L1CaloTower'].keys())
-    print(trees['l1CaloTowerEmuTree/L1CaloTowerTree']['L1CaloCluster'].keys())
-    print(arrays.keys())
-    array = arrays['L1CaloTower']['iet']
-    print(np.shape(array), np.shape(mask))
-    new_mask = np.repeat(mask, array.counts)
-    print(np.shape(new_mask))
-    assert len(array.content[new_mask]) == passing_entries
+
+    arrays = trees['l1CaloTowerEmuTree/L1CaloTowerTree'].arrays(
+        namedecode="utf-8", recursive='/')
+    array = arrays['L1CaloTowerTree/L1CaloCluster/et']
+    filtered = array[mask]
+
+    assert len(filtered) == passing_entries
     assert len(ds) == passing_entries
 
+    ds_filtered = ds['l1CaloTowerEmuTree.L1CaloTowerTree.L1CaloCluster.et'].array()
+
+    assert len(filtered) == len(ds_filtered)
+    assert list(filtered.content) == list(ds_filtered.content)
