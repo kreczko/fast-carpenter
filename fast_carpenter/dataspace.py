@@ -3,10 +3,12 @@ Specification
 --------------
 The DataSpace is a composable container for any objects.
 
-- elements (sub-spaces) can be accessed via composable indices: `ds['path1/path2']['obj1.var'], ds['path1/path2.obj1.var'], ds['path1.path2.obj1.var']` are equivalent
+- elements (sub-spaces) can be accessed via composable indices:
+    `ds['path1/path2']['obj1.var'], ds['path1/path2.obj1.var'], ds['path1.path2.obj1.var']` are equivalent
 - function calls on a DataSpace or sub-space are redirected to the underlying objects and return a generator
 - objects under the same DataSpace need to be of the same type, i.e. have the same API
-- an object is contained  in a DataSpace if the object identifier can be found in the DataSpace index or the indices of sub-spaces
+- an object is contained  in a DataSpace if the object identifier can be found in the
+    DataSpace index or the indices of sub-spaces
 """
 import functools
 import inspect
@@ -39,7 +41,6 @@ def group(group_name, elements):
     groups = {}
     for name, item in elements.items():
         name = name.decode('utf-8') if type(name) is bytes else name
-        print('item:', name, item)
         if isinstance(item, dict):
             tmpGroup = group(name, item)
             groups[name] = tmpGroup
@@ -48,6 +49,7 @@ def group(group_name, elements):
     newGroup._update(groups)
     return newGroup
 
+
 def from_file_paths(file_paths, treeNames):
     if len(file_paths) != 1:
         # TODO - support multiple paths
@@ -55,12 +57,14 @@ def from_file_paths(file_paths, treeNames):
 
     try:
         rootfile = uproot.open(file_paths[0])
-        trees = { treeName: rootfile[treeName] for treeName in treeNames}
+        trees = {treeName: rootfile[treeName] for treeName in treeNames}
     except MemoryError:
-        rootfile = uproot.open(file_paths[0], localsource=uproot.FileSource.defaults)
+        rootfile = uproot.open(
+            file_paths[0], localsource=uproot.FileSource.defaults)
         trees = {treeName: rootfile[treeName] for treeName in treeNames}
     ds = group('input_trees', trees)
     return ds
+
 
 def _normalize_internal_path(path):
     if type(path) is str:
@@ -68,6 +72,7 @@ def _normalize_internal_path(path):
     if type(path) is bytes:
         return path.replace(b'/', b'.').decode('utf-8')
     return path
+
 
 def pandas_wrap(func):
     @functools.wraps
@@ -136,6 +141,30 @@ def pandas_wrap(func):
     #     # newclass = super().__call__(*args, **kwargs)
     #     return newclass
 
+class DataSpaceView(object):
+
+    intercept = ['array']
+
+    def __init__(self, obj, mask=None):
+        self._obj = obj
+        self._mask = mask
+
+    def __getattr__(self, name):
+        if not hasattr(self._obj, name):
+            raise AttributeError(
+                'Object {} does not have attribute {}'.format(self._obj, name))
+        if name not in DataSpaceView.intercept:
+            return getattr(self._obj, name)
+        return super().__getattr__(name)
+
+    def array(self):
+        if self._mask is not None:
+            return self._obj.array()[self._mask]
+        return self._obj.array()
+
+    def raw(self):
+        return self._obj
+
 
 class DataSpace(object):
 
@@ -151,9 +180,12 @@ class DataSpace(object):
         self.__reload_index()
 
     def __load_element_functions(self):
-        ds_methods = [m for m, _ in inspect.getmembers(self, predicate=inspect.ismethod)]
-        e_methods = [m for m, in inspect.getmembers(self._elements[0], predicate=inspect.ismethod)]
-        e_methods = [m for m in e_methods if m not in ds_methods and not m.startswith('__')]
+        ds_methods = [m for m, _ in inspect.getmembers(
+            self, predicate=inspect.ismethod)]
+        e_methods = [m for m, in inspect.getmembers(
+            self._elements[0], predicate=inspect.ismethod)]
+        e_methods = [
+            m for m in e_methods if m not in ds_methods and not m.startswith('__')]
 
         for m in e_methods:
             setattr(self, m, lambda e: getattr(e, m))
@@ -177,7 +209,7 @@ class DataSpace(object):
         name = _normalize_internal_path(name)
         if name not in self._index:
             print(name, 'not in', list(self._index.keys()))
-        return self._index[name]
+        return DataSpaceView(self._index[name], self._mask)
 
     def __setitem__(self, name, value):
         name = _normalize_internal_path(name)
@@ -189,7 +221,8 @@ class DataSpace(object):
     def __len__(self):
         first_e = next(iter(self._elements.values()))
         if hasattr(first_e, '__len__'):
-            # print('first_e', first_e, len(first_e))
+            if self._mask is not None:
+                return np.count_nonzero(self._mask)
             return max([len(e) for e in self._elements.values()])
         return len(self._elements)
 
@@ -233,8 +266,8 @@ class DataSpace(object):
         for action in actions:
             results[action] = {}
             for name, element in self._elements.items():
-                # print(action, name, element, args, kwargs)
-                results[action][name] = getattr(element, action)(*args, **kwargs)
+                results[action][name] = getattr(
+                    element, action)(*args, **kwargs)
         self.__reload_index()
         return results
 
@@ -255,7 +288,6 @@ class DataSpace(object):
         return self[path], path
 
     def df(self, *args, **kwargs):
-        print(self, args, kwargs)
         inputs = args[0]
         results = {}
         for i in inputs:
@@ -277,12 +309,10 @@ class DataSpace(object):
         else:
             self._mask = self._mask[new_mask]
 
+
 def _normalise_mask(mask, tree_length):
     if isinstance(mask, (tuple, list)):
         mask = np.array(mask)
     elif not isinstance(mask, np.ndarray):
         raise RuntimeError("mask is not a numpy array, a list, or a tuple")
     return mask
-
-
-
