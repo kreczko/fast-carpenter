@@ -157,6 +157,9 @@ class DataSpaceView(object):
             return getattr(self._obj, name)
         return super().__getattr__(name)
 
+    def __getitem__(self, key):
+        return DataSpaceView(self._obj[key], self._mask)
+
     def array(self, *args, **kwargs):
         if self._mask is not None:
             return self._obj.array(*args, **kwargs)[self._mask]
@@ -164,6 +167,9 @@ class DataSpaceView(object):
 
     def raw(self):
         return self._obj
+
+    def __eq__(self, other):
+        return self._obj == other
 
 
 class DataSpace(object):
