@@ -166,8 +166,7 @@ class BinnedDataframe():
         self.out_dir = out_dir
         ins, outs, binnings = cfg.create_binning_list(self.name, binning)
         self._bin_dims = ins
-        # self.potential_inputs = set(sum((re.findall(r"\w+", dim) for dim in self._bin_dims), []))
-        self.potential_inputs = set(self._bin_dims)
+        self.potential_inputs = set(sum((re.findall(r"\w+", dim) for dim in self._bin_dims), []))
         self._out_bin_dims = outs
         self._binnings = binnings
         self._dataset_col = dataset_col
@@ -199,6 +198,8 @@ class BinnedDataframe():
 
         # TODO: this needs to be agnostic to input - chunk or no chunk
         # data --> chunk.pandas.DataFrame.from_inputs(all_inputs, flatten=False)
+        if hasattr(chunk.tree, 'alias'):
+            all_inputs = [chunk.tree.alias(a) for a in all_inputs]
         data = chunk.tree.pandas.df(chunk.tree, all_inputs, flatten=False)
         data = explode(data)
 
