@@ -253,13 +253,38 @@ def test_pandas(dataspace_from_multiple_trees):
     assert len(df) == 1319442
 
     tree_array = trees['l1CaloTowerEmuTree/L1CaloTowerTree']['L1CaloTower']['iet'].array()
-    tree_df = pd.DataFrame(data=tree_array.flatten(),
-                           columns=['L1CaloTower.iet'])
+    tree_df = pd.DataFrame(data=tree_array.flatten(), columns=['L1CaloTower.iet'])
 
     assert len(tree_df) == len(df)
     assert_array_equal(
         df['l1CaloTowerEmuTree.L1CaloTowerTree.L1CaloTower.iet'], tree_df['L1CaloTower.iet'])
 
+
+def test_aliases(dataspace_from_multiple_trees):
+    dimension = 'l1CaloTowerEmuTree.L1CaloTowerTree.L1CaloTower.iet'
+    ds, trees = dataspace_from_multiple_trees
+
+    assert dimension in ds
+    alias = ds.alias(dimension)
+    assert alias in ds
+
+    df = ds.pandas.df(ds, ['l1CaloTowerEmuTree.L1CaloTowerTree.L1CaloTower.iet'], flatten=True)
+    assert dimension not in df
+    assert alias in df
+
+
+def test_pandas_cut(dataspace_from_multiple_trees):
+    dimension = 'l1CaloTowerEmuTree.L1CaloTowerTree.L1CaloTower.iet'
+    binning = [-np.inf,    0.,  200.,  400.,  700., 1000.,   np.inf]
+    ds, trees = dataspace_from_multiple_trees
+    df = ds.pandas.df(ds, [dimension], flatten=True)
+
+    alias = ds.alias(dimension)
+    try:
+        eval_result = df.eval(alias, engine='numexpr')
+        out_dimension = pd.cut(eval_result, binning, right=False)
+    except Exception as e:
+        pytest.fail('test_pandas_cut failed due to {}'.format(e))
 
 def test_len_from_multiple_trees(dataspace_from_multiple_trees):
     ds, trees = dataspace_from_multiple_trees
@@ -277,8 +302,7 @@ def test_mask(dataspace_from_multiple_trees):
 
     ds.apply_mask(mask)
 
-    arrays = trees['l1CaloTowerEmuTree/L1CaloTowerTree'].arrays(
-        namedecode="utf-8", recursive='/')
+    arrays = trees['l1CaloTowerEmuTree/L1CaloTowerTree'].arrays(namedecode="utf-8", recursive='/')
     array = arrays['L1CaloTowerTree/L1CaloCluster/et']
     filtered = array[mask]
 
@@ -301,4 +325,3 @@ def test_array_args(dataspace_from_multiple_trees):
     ds_flatten = ds['l1CaloTowerEmuTree.L1CaloTowerTree.L1CaloCluster.et'].array(flatten=True)
 
     assert list(array.content) == list(ds_flatten)
-
