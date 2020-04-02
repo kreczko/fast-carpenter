@@ -43,7 +43,7 @@ class BEventsWrapped(BEvents):
         # self.tree.reset_mask()
         # self.tree.reset_mask()
         # self.tree['input_trees'].notify(actions=['reset_mask', 'reset_cache'])
-        pass
+        self.tree.reset_mask()
 
     def __getitem__(self, i):
         result = super(BEventsWrapped, self).__getitem__(self, i)
