@@ -265,6 +265,13 @@ class DataSpace(object):
             else:
                 path = _normalize_internal_path('.'.join(parents + [n]))
                 self.__add_to_index(path, v)
+        # create aliases
+        aliases = {}
+        for key in self._index.keys():
+            alias = self.alias(key)
+            if alias != key:
+                aliases[alias] = self._index[key]
+        self._index.update(aliases)
 
     def notify(self, *args, **kwargs):
         actions = kwargs.pop('actions', [])
@@ -297,10 +304,17 @@ class DataSpace(object):
         inputs = args[0]
         results = {}
         for i in inputs:
-            results[i] = self[i].array(*args[1:], **kwargs)
+            alias = self.alias(i)
+            results[alias] = self[alias].array(*args[1:], **kwargs)
         return pd.DataFrame.from_dict(results)
 
+    def alias(self, key):
+        if '.' in key:
+            return key.replace('.', '__DOT__')
+        return key
+
     def pandas(self):
+        # TODO: could simplify with types.SimpleNamespace()
         pass
 
     pandas.df = df
@@ -314,6 +328,9 @@ class DataSpace(object):
             self._mask = _normalise_mask(new_mask, len(self))
         else:
             self._mask = self._mask[new_mask]
+
+    def reset_mask(self):
+        self._mask = None
 
 
 def _normalise_mask(mask, tree_length):
