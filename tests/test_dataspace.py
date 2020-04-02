@@ -4,7 +4,7 @@ import uproot
 
 from fast_carpenter import dataspace as ds
 from fast_carpenter.masked_tree import MaskedUprootTree
-from fast_carpenter.event_builder import EventRanger
+# from fast_carpenter.event_builder import EventRanger
 
 
 class DummyTree:
@@ -71,11 +71,11 @@ def dataspace_from_multiple_trees(owner):
     filename = "tests/data/CMS_L1T_study.root"
     trees = ['l1CaloTowerEmuTree/L1CaloTowerTree', 'l1CaloTowerTree/L1CaloTowerTree']
     f = uproot.open(filename)
-    ranges = EventRanger()
+    # ranges = EventRanger()
     # trees = {tree: MaskedUprootTree(f[tree], ranges) for tree in trees}
     trees = {tree: f[tree] for tree in trees}
     data = ds.group(trees, name='input_trees')
-    ranges.set_owner(owner)
+    # ranges.set_owner(owner)
     return data, trees
 
 def test_group_with_list():
