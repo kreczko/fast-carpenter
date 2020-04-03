@@ -4,6 +4,7 @@ import six
 from collections import namedtuple
 import numpy as np
 from awkward import JaggedArray
+from deprecated import deprecated
 from ..expressions import get_branches, evaluate
 from .reductions import get_pandas_reduction, get_awkward_reduction
 
@@ -75,6 +76,7 @@ class Define():
         return True
 
 
+@deprecated(version='0.16.0', reason='Part of API cleanup')
 class DefinePandas():
 
     def __init__(self, name, out_dir, variables):
