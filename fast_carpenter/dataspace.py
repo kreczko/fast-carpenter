@@ -162,8 +162,13 @@ class DataSpaceView(object):
 
     def array(self, *args, **kwargs):
         if self._mask is not None:
-            return self._obj.array(*args, **kwargs)[self._mask]
-        return self._obj.array(*args, **kwargs)
+            if hasattr(self._obj, 'array'):
+                return self._obj.array(*args, **kwargs)[self._mask]
+            else:
+                return self._obj[self._mask]
+        if hasattr(self._obj, 'array'):
+            return self._obj.array(*args, **kwargs)
+        return self._obj
 
     def raw(self):
         return self._obj
@@ -306,6 +311,8 @@ class DataSpace(object):
         for i in inputs:
             alias = self.alias(i)
             results[alias] = self[alias].array(*args[1:], **kwargs)
+            # if self._mask:
+            #     results[alias] = results[alias][self._mask]
         return pd.DataFrame.from_dict(results)
 
     def alias(self, key):

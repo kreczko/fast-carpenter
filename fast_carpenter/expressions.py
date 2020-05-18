@@ -68,8 +68,8 @@ class TreeToDictAdaptor():
             return constants[item]
         full_item = self.aliases.get(item, item)
         array = self.tree[full_item]
-        print(str(type(array)))
-        if 'uproot' in str(type(array)):
+        # if 'uproot' in str(type(array)):
+        if hasattr(array, 'array'):
             array = array.array()
             array = self.strip_jaggedness(array)
         return array
@@ -114,6 +114,7 @@ def preprocess_expression(expression):
 
 def evaluate(tree, expression):
     cleaned_expression, alias_dict = preprocess_expression(expression)
+    print(expression, cleaned_expression, alias_dict)
     adaptor = TreeToDictAdaptor(tree, alias_dict)
     result = numexpr.evaluate(cleaned_expression, local_dict=adaptor)
     result = adaptor.apply_jaggedness(result)

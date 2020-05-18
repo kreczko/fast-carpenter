@@ -70,8 +70,7 @@ class Define():
 
     def event(self, chunk):
         for output, expression, reduction, fill_missing, mask in self._variables:
-            result = full_evaluate(chunk.tree, expression, fill_missing,
-                                   mask=mask, reduction=reduction)
+            result = full_evaluate(chunk.tree, expression, fill_missing, mask=mask, reduction=reduction)
             chunk.tree.new_variable(output, result)
         return True
 

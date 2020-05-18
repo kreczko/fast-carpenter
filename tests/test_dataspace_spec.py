@@ -325,3 +325,17 @@ def test_array_args(dataspace_from_multiple_trees):
     ds_flatten = ds['l1CaloTowerEmuTree.L1CaloTowerTree.L1CaloCluster.et'].array(flatten=True)
 
     assert list(array.content) == list(ds_flatten)
+
+
+def test_return_arrays_by_default(dataspace_from_multiple_trees):
+    ds, trees = dataspace_from_multiple_trees
+    var = ds['l1CaloTowerEmuTree.L1CaloTowerTree.L1CaloCluster.et']
+    assert assert_array_equal(var.array(), var)
+
+def test_numexpr_evaluate(dataspace_from_multiple_trees):
+    ds, trees = dataspace_from_multiple_trees
+
+    expression = 'l1CaloTowerEmuTree.L1CaloTowerTree.L1CaloCluster.et'
+
+    result = numexpr.evaluate(cleaned_expression, local_dict=adaptor)
+    result = adaptor.apply_jaggedness(result)
