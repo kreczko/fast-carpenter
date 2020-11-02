@@ -21,6 +21,7 @@ def get_version():
     return _globals["__version__"]
 
 
+<<<<<<< HEAD
 requirements = [
     'alphatwirl==0.25.5',
     'atpbar==1.0.8',
@@ -35,6 +36,11 @@ requirements = [
     'uproot>=3',
     'pandas>=1.1',
 ]
+=======
+requirements = ['atuproot==0.1.13', 'atsge==0.2.1', 'atpbar==1.0.8', 'mantichora==0.9.7',
+                'alphatwirl==0.25.5', 'fast-flow>0.5.0', 'fast-curator', 'awkward',
+                'pandas>=1.1', 'numpy', 'numba', 'numexpr', 'uproot>=3']
+>>>>>>> Add explicit requirement on pandas version
 repositories = []
 
 setup_requirements = ['pytest-runner', ]
