@@ -22,6 +22,9 @@ def get_version():
 
 
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> switching to Python version 3.7-3.9
 requirements = [
     'alphatwirl==0.25.5',
     'atpbar==1.0.8',
@@ -36,11 +39,14 @@ requirements = [
     'uproot>=3',
     'pandas>=1.1',
 ]
+<<<<<<< HEAD
 =======
 requirements = ['atuproot==0.1.13', 'atsge==0.2.1', 'atpbar==1.0.8', 'mantichora==0.9.7',
                 'alphatwirl==0.25.5', 'fast-flow>0.5.0', 'fast-curator', 'awkward',
                 'pandas>=1.1', 'numpy', 'numba', 'numexpr', 'uproot>=3']
 >>>>>>> Add explicit requirement on pandas version
+=======
+>>>>>>> switching to Python version 3.7-3.9
 repositories = []
 
 setup_requirements = ['pytest-runner', ]
