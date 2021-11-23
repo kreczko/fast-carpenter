@@ -3,7 +3,7 @@
 import six
 from collections import namedtuple
 import numpy as np
-from awkward import JaggedArray
+import awkward as ak
 from ..expressions import get_branches, evaluate
 from .reductions import get_pandas_reduction, get_awkward_reduction
 
@@ -94,7 +94,7 @@ class DefinePandas():
             else:
                 events = result.index.get_level_values(0).values
                 events -= events[0]
-                array = JaggedArray.fromparents(events, result.values)
+                array = ak.JaggedArray.fromparents(events, result.values)
 
             chunk.tree.new_variable(output, array)
         return True

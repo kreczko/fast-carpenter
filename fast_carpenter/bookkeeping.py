@@ -30,6 +30,7 @@ _dependencies = ["pandas",
                  'numba',
                  'numexpr',
                  'uproot',
+                 'uproot3',
                  ]
 
 

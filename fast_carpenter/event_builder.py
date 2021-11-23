@@ -1,4 +1,4 @@
-import uproot
+import uproot3
 from atuproot.BEvents import BEvents
 from .masked_tree import MaskedUprootTree, MaskedTrees
 
@@ -73,14 +73,14 @@ class EventBuilder(object):
         try:
             # TODO: we probably need iterate here or something else to enforce
             # nevents_per_block, start_block, stop_block
-            rootfile = uproot.open(self.config.inputPaths[0])
+            rootfile = uproot3.open(self.config.inputPaths[0])
             if isinstance(self.config.treeName, (list, tuple)):
                 tree = {name: rootfile[name] for name in self.config.treeName}
             else:
                 tree = rootfile[self.config.treeName]
         except MemoryError:
-            rootfile = uproot.open(self.config.inputPaths[0],
-                                   localsource=uproot.FileSource.defaults)
+            rootfile = uproot3.open(self.config.inputPaths[0],
+                                   localsource=uproot3.FileSource.defaults)
             if isinstance(self.config.treeName, (list, tuple)):
                 tree = {name: rootfile[name] for name in self.config.treeName}
             else:

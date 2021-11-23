@@ -135,14 +135,14 @@ def create_executor(args):
     if exe_type == "local":
         executor = cop.futures_executor
         exe_args.setdefault('workers', args.ncores)
-        exe_args.setdefault('flatten', False)
+        # exe_args.setdefault('flatten', False)
     elif exe_type == "parsl":
         executor = cop.parsl_executor
         exe_args.setdefault('n_threads', args.ncores)
         exe_args.setdefault('monitoring', False)
         if 'config' not in exe_args:
             exe_args['config'] = configure_parsl(**exe_args)
-        exe_args.setdefault('flatten', False)
+        # exe_args.setdefault('flatten', False)
     elif exe_type == "dask":
         executor = cop.dask_executor
         exe_args.setdefault('processes', False)
